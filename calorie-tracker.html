@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Fuel Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0f0e;
+    --surface: #191a18;
+    --surface2: #222421;
+    --border: #2e302c;
+    --accent: #c8f060;
+    --accent2: #f0a830;
+    --accent3: #60c8f0;
+    --text: #e8ead4;
+    --muted: #7a7d6e;
+    --danger: #f06060;
+    --radius: 16px;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    overscroll-behavior: none;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100dvh;
+    position: relative;
+  }
+
+  /* Header */
+  .header {
+    padding: 20px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px;
+    line-height: 1;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+
+  .logo span {
+    color: var(--muted);
+    font-style: italic;
+    font-size: 14px;
+    display: block;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    margin-top: 2px;
+  }
+
+  .date-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-top: 4px;
+  }
+
+  /* Calorie ring */
+  .goal-ring {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+
+  .ring-wrap {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+  }
+
+  .ring-svg {
+    width: 64px;
+    height: 64px;
+    transform: rotate(-90deg);
+  }
+
+  .ring-track {
+    fill: none;
+    stroke: var(--border);
+    stroke-width: 5;
+  }
+
+  .ring-fill {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-dasharray: 163;
+    stroke-dashoffset: 163;
+    transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .ring-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ring-cal {
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .ring-label {
+    font-size: 8px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+  }
+
+  .goal-stats {
+    flex: 1;
+  }
+
+  .goal-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .goal-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .goal-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .goal-divider {
+    width: 1px;
+    height: 32px;
+    background: var(--border);
+  }
+
+  .goal-remaining {
+    text-align: right;
+  }
+
+  .remain-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  .remain-num.over { color: var(--danger); }
+
+  /* Main scroll area */
+  .scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    padding-bottom: 160px;
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    margin-top: 20px;
+  }
+
+  .section-label:first-child { margin-top: 0; }
+
+  /* Log entries */
+  .entry {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    animation: slideIn 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .entry-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    background: var(--surface2);
+  }
+
+  .entry-info { flex: 1; min-width: 0; }
+
+  .entry-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .entry-meta {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .entry-cal {
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--accent2);
+    flex-shrink: 0;
+  }
+
+  .entry-delete {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 4px;
+    font-size: 16px;
+    line-height: 1;
+    flex-shrink: 0;
+    border-radius: 6px;
+    transition: color 0.15s;
+  }
+
+  .entry-delete:hover { color: var(--danger); }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-text { font-size: 14px; line-height: 1.6; }
+
+  /* Input panel */
+  .input-panel {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 430px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 12px 16px 24px;
+    z-index: 20;
+  }
+
+  .input-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  .tab-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0e0f0e;
+  }
+
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* Text input */
+  .text-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+  }
+
+  .text-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    resize: none;
+    min-height: 48px;
+    max-height: 100px;
+    outline: none;
+    transition: border-color 0.15s;
+    line-height: 1.4;
+  }
+
+  .text-input:focus { border-color: var(--accent); }
+  .text-input::placeholder { color: var(--muted); }
+
+  .send-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: var(--accent);
+    border: none;
+    color: #0e0f0e;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .send-btn:active { transform: scale(0.95); }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* Camera input */
+  .camera-area {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .camera-preview {
+    width: 100%;
+    height: 140px;
+    background: var(--surface2);
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    overflow: hidden;
+    position: relative;
+    transition: border-color 0.15s;
+  }
+
+  .camera-preview:hover { border-color: var(--accent); }
+
+  .camera-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 11px;
+  }
+
+  .preview-icon { font-size: 28px; }
+  .preview-hint { font-size: 12px; color: var(--muted); }
+
+  .camera-btn-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .cam-action-btn {
+    flex: 1;
+    padding: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .cam-action-btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0e0f0e;
+    font-weight: 600;
+  }
+
+  .cam-action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .cam-action-btn:active { transform: scale(0.97); }
+
+  #cameraInput { display: none; }
+
+  /* Macro pills */
+  .macro-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+
+  .pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+
+  .pill-p { background: rgba(96, 200, 240, 0.15); color: var(--accent3); }
+  .pill-c { background: rgba(240, 168, 48, 0.15); color: var(--accent2); }
+  .pill-f { background: rgba(200, 240, 96, 0.15); color: var(--accent); }
+
+  /* Loading state */
+  .loading-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(14, 15, 14, 0.85);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .loading-overlay.show { display: flex; }
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-size: 14px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* Goal modal */
+  .modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(14, 15, 14, 0.9);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0 0 0;
+  }
+
+  .modal-backdrop.show { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px 24px 0 0;
+    padding: 24px 20px 40px;
+    width: 100%;
+    max-width: 430px;
+    animation: slideUp 0.25s ease;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .modal-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 20px;
+  }
+
+  .modal-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    margin-bottom: 16px;
+  }
+
+  .modal-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    color: var(--text);
+    font-size: 24px;
+    font-family: 'DM Mono', monospace;
+    outline: none;
+    text-align: center;
+    margin-bottom: 16px;
+    transition: border-color 0.15s;
+  }
+
+  .modal-input:focus { border-color: var(--accent); }
+
+  .modal-save {
+    width: 100%;
+    padding: 16px;
+    background: var(--accent);
+    border: none;
+    border-radius: 12px;
+    color: #0e0f0e;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-8px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 18px;
+    border-radius: 40px;
+    font-size: 13px;
+    z-index: 300;
+    opacity: 0;
+    transition: all 0.2s;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Scrollbar */
+  .scroll-area::-webkit-scrollbar { width: 3px; }
+  .scroll-area::-webkit-scrollbar-track { background: transparent; }
+  .scroll-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Image context input */
+  .image-context-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    align-items: center;
+  }
+
+  .context-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .context-input:focus { border-color: var(--accent); }
+  .context-input::placeholder { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Analyzing...</div>
+</div>
+
+<!-- Goal modal -->
+<div class="modal-backdrop" id="goalModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Daily Calorie Goal</div>
+    <input class="modal-input" id="goalInput" type="number" placeholder="2000" min="500" max="9999">
+    <button class="modal-save" onclick="saveGoal()">Save Goal</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-top">
+    <div class="logo">
+      Fuel Log
+      <span>AI Calorie Tracker</span>
+    </div>
+    <div class="date-badge" id="dateBadge"></div>
+  </div>
+
+  <div class="goal-ring" onclick="openGoalModal()" style="cursor:pointer">
+    <div class="ring-wrap">
+      <svg class="ring-svg" viewBox="0 0 64 64">
+        <circle class="ring-track" cx="32" cy="32" r="26"/>
+        <circle class="ring-fill" id="ringFill" cx="32" cy="32" r="26"/>
+      </svg>
+      <div class="ring-center">
+        <div class="ring-cal" id="ringCalText">0</div>
+        <div class="ring-label">kcal</div>
+      </div>
+    </div>
+
+    <div class="goal-stats">
+      <div class="goal-row">
+        <div>
+          <div class="goal-num" id="consumedNum">0</div>
+          <div class="goal-sub">consumed</div>
+        </div>
+        <div class="goal-divider"></div>
+        <div class="goal-remaining">
+          <div class="remain-num" id="remainNum">2000</div>
+          <div class="goal-sub">remaining</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scroll area -->
+<div class="scroll-area" id="logArea">
+  <div class="section-label">Today's Log</div>
+  <div id="entryList">
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">🥦</div>
+      <div class="empty-text">Nothing logged yet.<br>Describe a meal or snap a photo below.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Input panel -->
+<div class="input-panel">
+  <div class="input-tabs">
+    <button class="tab-btn active" id="tabText" onclick="switchTab('text')">✏️ Describe</button>
+    <button class="tab-btn" id="tabCamera" onclick="switchTab('camera')">📷 Photo</button>
+  </div>
+
+  <!-- Text tab -->
+  <div class="tab-pane active" id="paneText">
+    <div class="text-row">
+      <textarea class="text-input" id="textInput" rows="1"
+        placeholder="e.g. 2 scrambled eggs and toast with butter…"
+        oninput="autoResize(this)"
+        onkeydown="handleKey(event)"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="submitText()">↑</button>
+    </div>
+  </div>
+
+  <!-- Camera tab -->
+  <div class="tab-pane" id="paneCamera">
+    <div class="camera-area">
+      <label for="galleryInput" style="display:block;cursor:pointer">
+        <div class="camera-preview" id="cameraPreview">
+          <div class="preview-icon">📷</div>
+          <div class="preview-hint">Tap to choose a photo from your library</div>
+        </div>
+      </label>
+
+      <!-- Gallery / file picker (no capture attr = shows library) -->
+      <input type="file" id="galleryInput" accept="image/*" style="display:none" onchange="handleImageSelect(event)">
+      <!-- Camera direct (capture attr) -->
+      <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none" onchange="handleImageSelect(event)">
+
+      <div class="image-context-row">
+        <input class="context-input" id="contextInput" type="text" placeholder="Optional: 'large bowl', 'restaurant portion'…">
+      </div>
+      <div class="camera-btn-row">
+        <label for="cameraInput" style="flex:1">
+          <div class="cam-action-btn" style="width:100%">📷 Camera</div>
+        </label>
+        <button class="cam-action-btn primary" id="analyzeBtn" onclick="submitImage()" disabled>Analyze Photo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────
+const todayKey = new Date().toISOString().slice(0, 10);
+let entries = JSON.parse(localStorage.getItem('fuellog_' + todayKey) || '[]');
+let goal = parseInt(localStorage.getItem('fuellog_goal') || '2000');
+let selectedImageBase64 = null;
+let selectedImageType = null;
+
+// ── Init ─────────────────────────────────────────────────
+document.getElementById('dateBadge').textContent = new Date().toLocaleDateString('en-US', {
+  weekday: 'short', month: 'short', day: 'numeric'
+});
+renderAll();
+
+// ── Render ───────────────────────────────────────────────
+function renderAll() {
+  renderEntries();
+  updateRing();
+}
+
+function renderEntries() {
+  const list = document.getElementById('entryList');
+  const empty = document.getElementById('emptyState');
+
+  if (entries.length === 0) {
+    list.innerHTML = '';
+    list.appendChild(empty);
+    return;
+  }
+
+  list.innerHTML = '';
+  const byMeal = {};
+  entries.forEach(e => {
+    if (!byMeal[e.meal]) byMeal[e.meal] = [];
+    byMeal[e.meal].push(e);
+  });
+
+  const mealOrder = ['Breakfast', 'Morning Snack', 'Lunch', 'Afternoon Snack', 'Dinner', 'Evening Snack', 'Other'];
+  const ordered = [...mealOrder.filter(m => byMeal[m]), ...Object.keys(byMeal).filter(m => !mealOrder.includes(m))];
+
+  ordered.forEach(meal => {
+    const label = document.createElement('div');
+    label.className = 'section-label';
+    label.textContent = meal;
+    list.appendChild(label);
+
+    byMeal[meal].forEach(entry => {
+      const div = document.createElement('div');
+      div.className = 'entry';
+      div.innerHTML = `
+        <div class="entry-icon">${entry.emoji || '🍽️'}</div>
+        <div class="entry-info">
+          <div class="entry-name">${entry.name}</div>
+          <div class="entry-meta">${entry.portion || ''}</div>
+          <div class="macro-pills">
+            ${entry.protein ? `<span class="pill pill-p">P ${entry.protein}g</span>` : ''}
+            ${entry.carbs   ? `<span class="pill pill-c">C ${entry.carbs}g</span>` : ''}
+            ${entry.fat     ? `<span class="pill pill-f">F ${entry.fat}g</span>` : ''}
+          </div>
+        </div>
+        <div class="entry-cal">+${entry.calories}</div>
+        <button class="entry-delete" onclick="deleteEntry('${entry.id}')">×</button>
+      `;
+      list.appendChild(div);
+    });
+  });
+}
+
+function updateRing() {
+  const total = entries.reduce((s, e) => s + e.calories, 0);
+  const remaining = goal - total;
+  const pct = Math.min(total / goal, 1);
+  const circumference = 163;
+
+  document.getElementById('ringFill').style.strokeDashoffset = circumference - pct * circumference;
+  document.getElementById('ringCalText').textContent = total;
+  document.getElementById('consumedNum').textContent = total;
+
+  const remEl = document.getElementById('remainNum');
+  remEl.textContent = Math.abs(remaining);
+  remEl.className = 'remain-num' + (remaining < 0 ? ' over' : '');
+
+  if (remaining < 0) {
+    document.getElementById('ringFill').style.stroke = 'var(--danger)';
+  } else {
+    document.getElementById('ringFill').style.stroke = 'var(--accent)';
+  }
+
+  document.querySelector('.goal-sub:last-child').textContent = remaining < 0 ? 'over goal' : 'remaining';
+}
+
+function saveToStorage() {
+  localStorage.setItem('fuellog_' + todayKey, JSON.stringify(entries));
+}
+
+// ── Tab switching ────────────────────────────────────────
+function switchTab(tab) {
+  document.getElementById('tabText').classList.toggle('active', tab === 'text');
+  document.getElementById('tabCamera').classList.toggle('active', tab === 'camera');
+  document.getElementById('paneText').classList.toggle('active', tab === 'text');
+  document.getElementById('paneCamera').classList.toggle('active', tab === 'camera');
+}
+
+// ── Text submission ──────────────────────────────────────
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitText(); }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+async function submitText() {
+  const input = document.getElementById('textInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  showLoading('Analyzing meal...');
+
+  try {
+    const result = await callClaude({ type: 'text', content: text });
+    addEntries(result);
+  } catch (err) {
+    showToast('Error: ' + err.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+// ── Image submission ─────────────────────────────────────
+function handleImageSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const full = ev.target.result;
+    selectedImageBase64 = full.split(',')[1];
+    selectedImageType = file.type;
+
+    const preview = document.getElementById('cameraPreview');
+    preview.innerHTML = `<img src="${full}" alt="Food photo">`;
+    document.getElementById('analyzeBtn').disabled = false;
+    showToast('Photo ready — tap Analyze');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitImage() {
+  if (!selectedImageBase64) return;
+  const context = document.getElementById('contextInput').value.trim();
+  showLoading('Identifying food...');
+
+  try {
+    const result = await callClaude({ type: 'image', base64: selectedImageBase64, mediaType: selectedImageType, context });
+    addEntries(result);
+
+    // Reset
+    selectedImageBase64 = null;
+    selectedImageType = null;
+    document.getElementById('cameraPreview').innerHTML = `
+      <div class="preview-icon">📷</div>
+      <div class="preview-hint">Tap to choose a photo from your library</div>
+    `;
+    document.getElementById('analyzeBtn').disabled = true;
+    document.getElementById('contextInput').value = '';
+    document.getElementById('galleryInput').value = '';
+    document.getElementById('cameraInput').value = '';
+  } catch (err) {
+    showToast('Error: ' + err.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+// ── Claude API call ──────────────────────────────────────
+async function callClaude({ type, content, base64, mediaType, context }) {
+  const hour = new Date().getHours();
+  const mealGuess = hour < 10 ? 'Breakfast' : hour < 12 ? 'Morning Snack' : hour < 14 ? 'Lunch' : hour < 17 ? 'Afternoon Snack' : hour < 21 ? 'Dinner' : 'Evening Snack';
+
+  const systemPrompt = `You are a nutrition expert AI. When given a food description or image, return ONLY a valid JSON array (no markdown, no backticks) of food items eaten.
+
+Each item in the array must have:
+- name: string (short food name)
+- calories: integer (estimated kcal)
+- protein: integer (grams, estimate)
+- carbs: integer (grams, estimate)
+- fat: integer (grams, estimate)
+- portion: string (e.g. "1 cup", "2 slices", "large plate")
+- emoji: string (single relevant food emoji)
+- meal: string (one of: "Breakfast", "Morning Snack", "Lunch", "Afternoon Snack", "Dinner", "Evening Snack", "Other" — guess from context or default to "${mealGuess}")
+
+If multiple distinct foods are described/visible, return one object per food item.
+Be realistic with portions. For restaurant/takeout food, use generous estimates.
+Return ONLY the JSON array, nothing else.`;
+
+  let userMessage;
+  if (type === 'text') {
+    userMessage = [{ type: 'text', text: `Log this food: ${content}` }];
+  } else {
+    userMessage = [
+      { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+      { type: 'text', text: `Identify and log all food items in this photo.${context ? ' Additional context: ' + context : ''} Be specific about portions visible.` }
+    ];
+  }
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userMessage }]
+    })
+  });
+
+  if (!response.ok) throw new Error('API error ' + response.status);
+  const data = await response.json();
+  const raw = data.content.map(b => b.text || '').join('').trim().replace(/```json|```/g, '').trim();
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new Error('Could not parse nutrition data');
+  }
+}
+
+// ── Entry management ─────────────────────────────────────
+function addEntries(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    showToast('No food items found');
+    return;
+  }
+
+  items.forEach(item => {
+    entries.push({
+      id: Date.now() + Math.random().toString(36).slice(2),
+      name: item.name || 'Unknown food',
+      calories: Math.round(item.calories) || 0,
+      protein: Math.round(item.protein) || 0,
+      carbs: Math.round(item.carbs) || 0,
+      fat: Math.round(item.fat) || 0,
+      portion: item.portion || '',
+      emoji: item.emoji || '🍽️',
+      meal: item.meal || 'Other'
+    });
+  });
+
+  saveToStorage();
+  renderAll();
+
+  const total = items.reduce((s, i) => s + (i.calories || 0), 0);
+  showToast(`+${total} kcal logged`);
+
+  setTimeout(() => {
+    document.getElementById('logArea').scrollTop = document.getElementById('logArea').scrollHeight;
+  }, 100);
+}
+
+function deleteEntry(id) {
+  entries = entries.filter(e => e.id !== id);
+  saveToStorage();
+  renderAll();
+}
+
+// ── Goal modal ───────────────────────────────────────────
+function openGoalModal() {
+  document.getElementById('goalInput').value = goal;
+  document.getElementById('goalModal').classList.add('show');
+}
+
+function saveGoal() {
+  const val = parseInt(document.getElementById('goalInput').value);
+  if (val >= 500 && val <= 9999) {
+    goal = val;
+    localStorage.setItem('fuellog_goal', goal);
+    document.getElementById('goalModal').classList.remove('show');
+    updateRing();
+    showToast('Goal set to ' + goal + ' kcal');
+  }
+}
+
+document.getElementById('goalModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('goalModal')) {
+    document.getElementById('goalModal').classList.remove('show');
+  }
+});
+
+// ── Loading/Toast helpers ────────────────────────────────
+function showLoading(msg) {
+  document.getElementById('loadingText').textContent = msg || 'Analyzing...';
+  document.getElementById('loadingOverlay').classList.add('show');
+}
+
+function hideLoading() {
+  document.getElementById('loadingOverlay').classList.remove('show');
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
